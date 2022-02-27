@@ -504,7 +504,7 @@ static bool do_dedup(int argc, char *argv[])
             if (!tmp)
                 break;
             INIT_LIST_HEAD(&tmp->list);
-            slen = strlen(item->value) + 1;
+            slen = strlen(item->value) + 1;  // cppcheck-suppress uninitvar
             tmp->value = malloc(slen);
             if (!tmp->value) {
                 free(tmp);

@@ -28,7 +28,7 @@ void q_free(struct list_head *l)
 {
     element_t *e;
 
-    while (!list_empty(l)) {
+    while (l && !list_empty(l)) {
         e = container_of(l, element_t, list);
         list_del(&e->list);
         q_release_element(e);

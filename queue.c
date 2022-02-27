@@ -44,7 +44,25 @@ void q_free(struct list_head *l)
  */
 bool q_insert_head(struct list_head *head, char *s)
 {
+    element_t *e;
+
+    if (!head)
+        return false;
+    e = malloc(sizeof(element_t));
+    if (!e)
+        goto err_ele;
+    e->value = strdup(s);
+    if (!e->value)
+        goto err_str;
+    list_add(&e->list, head);
     return true;
+err_str:
+    if (e->value)
+        free(e->value);
+err_ele:
+    if (e)
+        free(e);
+    return false;
 }
 
 /*
@@ -56,7 +74,25 @@ bool q_insert_head(struct list_head *head, char *s)
  */
 bool q_insert_tail(struct list_head *head, char *s)
 {
+    element_t *e;
+
+    if (!head)
+        return false;
+    e = malloc(sizeof(element_t));
+    if (!e)
+        goto err_ele;
+    e->value = strdup(s);
+    if (!e->value)
+        goto err_str;
+    list_add_tail(&e->list, head);
     return true;
+err_str:
+    if (e->value)
+        free(e->value);
+err_ele:
+    if (e)
+        free(e);
+    return false;
 }
 
 /*

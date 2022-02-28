@@ -33,6 +33,8 @@ void q_free(struct list_head *l)
         list_del(&e->list);
         q_release_element(e);
     }
+    if (l)
+        free(l);
 }
 
 /*

@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -280,44 +281,155 @@ void q_reverse(struct list_head *head)
     } while (n != head);
 }
 
-void list_qsort(struct list_head *head)
+struct list_head *mergeTwoLists(struct list_head *L1, struct list_head *L2)
 {
-    struct list_head list_less, list_greater;
-    element_t *pivot;
-    element_t *item = NULL, *is = NULL;
+    struct list_head *head = NULL, **ptr = &head;
 
+    for (; L1 && L2; ptr = &(*ptr)->next) {
+        if (strcmp(list_entry(L1, element_t, list)->value,
+                   list_entry(L2, element_t, list)->value) <= 0) {
+            *ptr = L1;
+            L1 = L1->next;
+        } else {
+            *ptr = L2;
+            L2 = L2->next;
+        }
+    }
+    *ptr = (struct list_head *) ((uintptr_t) L1 | (uintptr_t) L2);
+    return head;
+}
+
+void list_mergesort(struct list_head *head)
+{
     if (list_empty(head) || list_is_singular(head))
         return;
 
-    INIT_LIST_HEAD(&list_less);
-    INIT_LIST_HEAD(&list_greater);
+    int top = 0;
+    int listsSize = 0;
+    struct list_head *stack[1000] = {NULL};
+    struct list_head *lists[100000] = {NULL};
 
-    pivot = list_first_entry(head, element_t, list);
-    list_del(&pivot->list);
+    head->prev->next = NULL;
+    stack[top] = head->next;
 
-    list_for_each_entry_safe (item, is, head, list) {
-        if (strcmp(item->value, pivot->value) <= 0)
-            list_move_tail(&item->list, &list_less);
-        else
-            list_move(&item->list, &list_greater);
+    while (top >= 0) {
+        struct list_head *left = stack[top--];
+        //        bool equalSeq = false;
+
+        if (left) {
+            struct list_head *slow = left;
+            struct list_head *fast;
+
+            for (fast = left->next; fast && fast->next;
+                 fast = fast->next->next) {
+#if 0
+                if (slow->next &&
+                    strcmp(list_entry(slow, element_t, list)->value,
+                           list_entry(slow->next, element_t, list)->value) ==
+                        0) {
+                    while (
+                        slow->next &&
+                        strcmp(
+                            list_entry(slow, element_t, list)->value,
+                            list_entry(slow->next, element_t, list)->value) ==
+                            0) {
+                        slow = slow->next;
+                        if (fast == slow)
+                            slowahead = true;
+                    }
+                    if (slowahead)
+                        fast = slow->next;
+                } else {
+                    slow = slow->next;
+                }
+                if (!slow->next)
+                    break;
+#else
+                if (strcmp(list_entry(slow, element_t, list)->value,
+                           list_entry(slow->next, element_t, list)->value) ==
+                    0) {
+                    while (
+                        slow->next &&
+                        strcmp(
+                            list_entry(slow, element_t, list)->value,
+                            list_entry(slow->next, element_t, list)->value) ==
+                            0) {
+                        slow = slow->next;
+                    }
+                    break;
+                }
+                slow = slow->next;
+            }
+#endif
+                struct list_head *right = slow->next;
+                slow->next = NULL;
+
+                stack[++top] = left;
+                stack[++top] = right;
+            }
+            else lists[listsSize++] = stack[top--];
+        }
+
+        while (listsSize > 1) {
+            for (int i = 0, j = listsSize - 1; i < j; i++, j--)
+                lists[i] = mergeTwoLists(lists[i], lists[j]);
+            listsSize = (listsSize + 1) / 2;
+        }
+
+        head->next = lists[0];
+
+        struct list_head *i = head;
+        while (i->next) {
+            i->next->prev = i;
+            i = i->next;
+        }
+        head->prev = i;
+        i->next = head;
     }
 
-    list_qsort(&list_less);
-    list_qsort(&list_greater);
+    void list_qsort(struct list_head * head)
+    {
+        struct list_head list_less, list_greater, list_equal;
+        element_t *pivot;
+        element_t *item = NULL, *is = NULL;
 
-    list_add(&pivot->list, head);
-    list_splice(&list_less, head);
-    list_splice_tail(&list_greater, head);
-}
+        if (list_empty(head) || list_is_singular(head))
+            return;
 
-/*
- * Sort elements of queue in ascending order
- * No effect if q is NULL or empty. In addition, if q has only one
- * element, do nothing.
- */
-void q_sort(struct list_head *head)
-{
-    if (!head || list_empty(head))
-        return;
-    list_qsort(head);
-}
+        INIT_LIST_HEAD(&list_less);
+        INIT_LIST_HEAD(&list_equal);
+        INIT_LIST_HEAD(&list_greater);
+
+        pivot = list_first_entry(head, element_t, list);
+        list_del_init(&pivot->list);
+
+        list_for_each_entry_safe (item, is, head, list) {
+            if (strcmp(item->value, pivot->value) == 0)
+                list_move_tail(&item->list, &list_equal);
+            else if (strcmp(item->value, pivot->value) < 0)
+                list_move_tail(&item->list, &list_less);
+            else
+                list_move(&item->list, &list_greater);
+        }
+
+        list_qsort(&list_less);
+        list_qsort(&list_greater);
+
+        list_add(&pivot->list, head);
+        list_splice(&list_equal, head);
+        list_splice(&list_less, head);
+        list_splice_tail(&list_greater, head);
+    }
+
+    /*
+     * Sort elements of queue in ascending order
+     * No effect if q is NULL or empty. In addition, if q has only one
+     * element, do nothing.
+     */
+    void q_sort(struct list_head * head)
+    {
+        if (!head || list_empty(head))
+            return;
+        // list_qsort(head);
+        list_mergesort(head);
+    }
